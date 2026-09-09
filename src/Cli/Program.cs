@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 
 Console.WriteLine("CrossApp – практикум з крос-платформного програмування");
-Console.WriteLine("Студент: Прізвище Ім'я, група ___");
+Console.WriteLine("Студент: Фадєєв Максим, група ФЕІ-34с");
 Console.WriteLine(new string('-', 52));
 
 Console.WriteLine($"ОС (OSDescription) : {RuntimeInformation.OSDescription}");
@@ -14,4 +14,4 @@ Console.WriteLine($"Поточний каталог : {Environment.CurrentDirect
 
 Console.WriteLine(new string('-', 52));
 
-Console.WriteLine("Предметна область: Бібліотека (книги, примірники, читачі, видачі)");
+Console.WriteLine("Предметна область: Кінотеатр (фільми, зали, місця, квитки)");
