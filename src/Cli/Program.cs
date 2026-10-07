@@ -1,16 +1,38 @@
-﻿using Core;
+﻿using Core.Dto;
+using Core.Import;
 
-EnvironmentReport report = EnvironmentInfo.Collect();
+string path = args.Length > 0
+    ? args[0]
+    : Path.Combine("data", "sample.csv");
 
-Console.WriteLine("CrossApp – інформація про середовище");
-Console.WriteLine(new string('-', 52));
+if (!File.Exists(path))
+{
+    Console.WriteLine($"Файл не знайдено: {Path.GetFullPath(path)}");
+    return 1;
+}
 
-Console.WriteLine($"ОС : {report.OsDescription}");
-Console.WriteLine($"Runtime : {report.FrameworkDescription}");
-Console.WriteLine($"Архітектура : {report.ProcessArchitecture}");
-Console.WriteLine($"RID (визначено): {report.DetectedRid}");
-Console.WriteLine($"RID (від .NET) : {report.ReportedRid}");
-Console.WriteLine($"Каталог : {report.BaseDirectory}");
+ImportResult<MovieDto> result = MovieCsvImporter.Load(path);
 
-Console.WriteLine(new string('-', 52));
-Console.WriteLine("Предметна область: Кінотеатр");
+Console.WriteLine($"Завантажено записів: {result.Items.Count}");
+Console.WriteLine();
+
+Console.WriteLine("Перші записи:");
+
+foreach (MovieDto movie in result.Items.Take(5))
+{
+    Console.WriteLine(
+        $" {movie.Id,-6} {movie.Title,-25} {movie.Genre,-15} {movie.Year,4} {movie.Duration,3} хв");
+}
+
+if (result.Errors.Count > 0)
+{
+    Console.WriteLine();
+    Console.WriteLine($"Пропущено рядків: {result.Errors.Count}");
+
+    foreach (string error in result.Errors)
+    {
+        Console.WriteLine($" ! {error}");
+    }
+}
+
+return 0;
