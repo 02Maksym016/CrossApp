@@ -1,38 +1,85 @@
-﻿using Core.Dto;
-using Core.Import;
+﻿using Core.Domain;
+using Core.Dto;
 
-string path = args.Length > 0
-    ? args[0]
-    : Path.Combine("data", "sample.csv");
+Console.WriteLine("=== Сценарій 1: успіх ===");
 
-if (!File.Exists(path))
-{
-    Console.WriteLine($"Файл не знайдено: {Path.GetFullPath(path)}");
-    return 1;
-}
+Movie movie = Movie.Create(
+    "M-001",
+    "Інтерстеллар",
+    "Фантастика",
+    2014,
+    169);
 
-ImportResult<MovieDto> result = MovieCsvImporter.Load(path);
+Console.WriteLine(movie);
 
-Console.WriteLine($"Завантажено записів: {result.Items.Count}");
+movie.UpdateDetails(
+    "Інтерстеллар — спеціальний показ",
+    "Фантастика",
+    2014,
+    170);
+
+Console.WriteLine($"Після зміни: {movie}");
+
+MovieDto dto = movie.ToDto();
+Movie restored = Movie.FromDto(dto);
+
+Console.WriteLine($"Відновлено з DTO: {restored}");
+
+movie.Archive();
+
+Console.WriteLine($"Після архівації: {movie}");
+
+MovieDto archivedDto = movie.ToDto();
+Movie restoredArchived = Movie.FromDto(archivedDto);
+
+Console.WriteLine($"Відновлено архівний фільм: {restoredArchived}");
+
 Console.WriteLine();
+Console.WriteLine("=== Сценарій 2: порушення інваріантів ===");
 
-Console.WriteLine("Перші записи:");
+TryDo(
+    "порожній ID",
+    () => Movie.Create("", "Тест", "Драма", 2020, 120));
 
-foreach (MovieDto movie in result.Items.Take(5))
+TryDo(
+    "порожня назва",
+    () => Movie.Create("M-002", " ", "Драма", 2020, 120));
+
+TryDo(
+    "недопустимий рік",
+    () => Movie.Create("M-003", "Тест", "Драма", 1800, 120));
+
+TryDo(
+    "нульова тривалість",
+    () => Movie.Create("M-004", "Тест", "Драма", 2020, 0));
+
+TryDo(
+    "повторне архівування",
+    () => movie.Archive());
+
+TryDo(
+    "зміна архівного фільму",
+    () => movie.UpdateDetails(
+        "Нова назва",
+        "Драма",
+        2020,
+        120));
+
+Console.WriteLine();
+Console.WriteLine($"Стан після відмов: {movie}");
+
+static void TryDo(string title, Action action)
 {
-    Console.WriteLine(
-        $" {movie.Id,-6} {movie.Title,-25} {movie.Genre,-15} {movie.Year,4} {movie.Duration,3} хв");
-}
-
-if (result.Errors.Count > 0)
-{
-    Console.WriteLine();
-    Console.WriteLine($"Пропущено рядків: {result.Errors.Count}");
-
-    foreach (string error in result.Errors)
+    try
     {
-        Console.WriteLine($" ! {error}");
+        action();
+
+        Console.WriteLine(
+            $" {title}: виняток НЕ спрацював — інваріант відсутній!");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine(
+            $" {title}: {ex.GetType().Name} — {ex.Message}");
     }
 }
-
-return 0;

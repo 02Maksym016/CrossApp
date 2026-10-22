@@ -5,4 +5,5 @@ public record MovieDto(
     string Title,
     string Genre,
     int Year,
-    int Duration);
+    int Duration,
+    bool IsArchived = false);
