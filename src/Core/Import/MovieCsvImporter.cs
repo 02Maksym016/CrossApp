@@ -51,8 +51,8 @@ public static class MovieCsvImporter
                 => new ParseFailed(
                     $"очікую 5 колонок, отримав {parts.Length}"),
 
-            [_, "", _, _, _] or [_, _, "", _, _]
-                => new ParseFailed("ID або назва порожні"),
+            ["", _, _, _, _] or [_, "", _, _, _] or [_, _, "", _, _]
+                => new ParseFailed("ID, назва або жанр порожні"),
 
             [_, _, _, var year, _]
                 when !int.TryParse(year, out int y) ||
