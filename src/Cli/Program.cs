@@ -1,85 +1,89 @@
-﻿using Core.Domain;
-using Core.Dto;
+﻿
+using Core;
+using Core.Abstractions;
+using Core.Services;
+using Core.Storage;
 
-Console.WriteLine("=== Сценарій 1: успіх ===");
+bool useFile = args.Contains("--file");
 
-Movie movie = Movie.Create(
-    "M-001",
-    "Інтерстеллар",
-    "Фантастика",
-    2014,
-    169);
+ICinemaStore store = useFile
+    ? new FileCinemaStore(Path.Combine("data", "movies.json"))
+    : new InMemoryCinemaStore(SampleData.CreateMovies());
 
-Console.WriteLine(movie);
+CinemaService service = new(store);
 
-movie.UpdateDetails(
-    "Інтерстеллар — спеціальний показ",
-    "Фантастика",
-    2014,
-    170);
+Console.WriteLine(
+    $"Сховище: {(useFile ? "FileCinemaStore" : "InMemoryCinemaStore")}");
 
-Console.WriteLine($"Після зміни: {movie}");
+Console.WriteLine("\nУсі фільми:");
 
-MovieDto dto = movie.ToDto();
-Movie restored = Movie.FromDto(dto);
+foreach (var movie in service.All())
+    Console.WriteLine(movie);
 
-Console.WriteLine($"Відновлено з DTO: {restored}");
+Console.WriteLine("\nДодавання нового фільму:");
 
-movie.Archive();
-
-Console.WriteLine($"Після архівації: {movie}");
-
-MovieDto archivedDto = movie.ToDto();
-Movie restoredArchived = Movie.FromDto(archivedDto);
-
-Console.WriteLine($"Відновлено архівний фільм: {restoredArchived}");
-
-Console.WriteLine();
-Console.WriteLine("=== Сценарій 2: порушення інваріантів ===");
-
-TryDo(
-    "порожній ID",
-    () => Movie.Create("", "Тест", "Драма", 2020, 120));
-
-TryDo(
-    "порожня назва",
-    () => Movie.Create("M-002", " ", "Драма", 2020, 120));
-
-TryDo(
-    "недопустимий рік",
-    () => Movie.Create("M-003", "Тест", "Драма", 1800, 120));
-
-TryDo(
-    "нульова тривалість",
-    () => Movie.Create("M-004", "Тест", "Драма", 2020, 0));
-
-TryDo(
-    "повторне архівування",
-    () => movie.Archive());
-
-TryDo(
-    "зміна архівного фільму",
-    () => movie.UpdateDetails(
-        "Нова назва",
-        "Драма",
-        2020,
-        120));
-
-Console.WriteLine();
-Console.WriteLine($"Стан після відмов: {movie}");
-
-static void TryDo(string title, Action action)
+try
 {
-    try
-    {
-        action();
+    service.Add(
+        "M-019",
+        "Дюна",
+        "Фантастика",
+        2021,
+        155);
 
-        Console.WriteLine(
-            $" {title}: виняток НЕ спрацював — інваріант відсутній!");
-    }
-    catch (Exception ex)
+    Console.WriteLine("Фільм успішно додано.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Помилка: {ex.Message}");
+}
+
+Console.WriteLine("\nПошук фільму M-001:");
+
+var foundMovie = service.Find("M-001");
+
+Console.WriteLine(foundMovie ?? null);
+
+Console.WriteLine("\nОновлення фільму M-001:");
+
+try
+{
+    service.Update(
+        "M-001",
+        "Інтерстеллар — спеціальний показ",
+        "Фантастика",
+        2014,
+        170);
+
+    Console.WriteLine("Фільм успішно оновлено.");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Помилка: {ex.Message}");
+}
+
+Console.WriteLine("\nАрхівування фільму M-002:");
+
+try
+{
+    var movie = service.Find("M-002");
+
+    if (movie is null)
+        Console.WriteLine("Фільм не знайдено.");
+    else if (movie.IsArchived)
+        Console.WriteLine("Фільм уже перебуває в архіві.");
+    else
     {
-        Console.WriteLine(
-            $" {title}: {ex.GetType().Name} — {ex.Message}");
+        service.Archive("M-002");
+        Console.WriteLine("Фільм успішно архівовано.");
     }
 }
+catch (Exception ex)
+{
+    Console.WriteLine($"Помилка: {ex.Message}");
+}
+
+Console.WriteLine("\nПідсумковий список фільмів:");
+
+foreach (var movie in service.All())
+    Console.WriteLine(movie);
