@@ -3,6 +3,7 @@ using Core;
 using Core.Abstractions;
 using Core.Services;
 using Core.Storage;
+using Core.Events;
 
 bool useFile = args.Contains("--file");
 
@@ -11,6 +12,27 @@ ICinemaStore store = useFile
     : new InMemoryCinemaStore(SampleData.CreateMovies());
 
 CinemaService service = new(store);
+
+var logPath = Path.Combine(
+    AppContext.BaseDirectory, "logs", "app.log");
+
+Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+void OnCinemaChanged(object? sender, CinemaChangedEventArgs e)
+{
+    var line = $"{e.At:HH:mm:ss} {e.Kind,-8} {e.Id} — {e.Title}";
+
+    Console.WriteLine(line);
+    File.AppendAllText(
+    logPath,
+    line + Environment.NewLine,
+    System.Text.Encoding.UTF8);
+}
+
+service.Changed += OnCinemaChanged;
+
+int changes = 0;
+service.Changed += (_, _) => changes++;
 
 Console.WriteLine(
     $"Сховище: {(useFile ? "FileCinemaStore" : "InMemoryCinemaStore")}");
@@ -86,4 +108,43 @@ catch (Exception ex)
 Console.WriteLine("\nПідсумковий список фільмів:");
 
 foreach (var movie in service.All())
+    Console.WriteLine(movie);
+
+
+Console.WriteLine("\nКількість отриманих подій:");
+Console.WriteLine($"Подій отримано: {changes}");
+
+Console.WriteLine("\nВідписка від першого обробника:");
+service.Changed -= OnCinemaChanged;
+
+service.Update(
+    "M-001",
+    "Інтерстеллар — фінальна версія",
+    "Фантастика",
+    2014,
+    171);
+
+Console.WriteLine($"Подій отримано: {changes}");
+
+Console.WriteLine("\nПеревірка помилкової операції:");
+
+int changesBeforeError = changes;
+
+try
+{
+    service.Update("M-999", "Невідомий фільм", "Драма", 2025, 120);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Помилка: {ex.Message}");
+}
+
+Console.WriteLine($"Подій до помилки: {changesBeforeError}");
+Console.WriteLine($"Подій після помилки: {changes}");
+
+Console.WriteLine("\nФільми тривалістю більше 150 хвилин:");
+
+var longMovies = service.FindAll(movie => movie.Duration > 150);
+
+foreach (var movie in longMovies)
     Console.WriteLine(movie);
