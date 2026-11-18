@@ -4,14 +4,100 @@ using Core.Abstractions;
 using Core.Services;
 using Core.Storage;
 using Core.Events;
+using Core.Reports;
+using Core.Domain;
 
 bool useFile = args.Contains("--file");
+
+string command = args.FirstOrDefault(
+    arg => !arg.StartsWith("--")) ?? "report-top";
 
 ICinemaStore store = useFile
     ? new FileCinemaStore(Path.Combine("data", "movies.json"))
     : new InMemoryCinemaStore(SampleData.CreateMovies());
 
 CinemaService service = new(store);
+
+if (command != "demo-events")
+{
+    switch (command)
+    {
+        case "report-top":
+            Console.WriteLine("\nТОП-5 найдовших фільмів:");
+
+            foreach (var movie in ReportService.TopByDuration(
+                service.All(), 5))
+            {
+                Console.WriteLine(
+                    $"{movie.Id} | {movie.Title} | {movie.Duration} хв | {movie.Genre}");
+            }
+            break;
+
+        case "report-low":
+            Console.WriteLine("\nФільми тривалістю менше 120 хвилин:");
+
+            foreach (var movie in ReportService.ShortMovies(
+                service.All(), 120))
+            {
+                Console.WriteLine(
+                    $"{movie.Id} | {movie.Title} | {movie.Duration} хв | {movie.Genre}");
+            }
+            break;
+
+        case "report-groups":
+            Console.WriteLine("\nЗвіт за жанрами:");
+
+            foreach (var group in ReportService.ByGenre(service.All()))
+            {
+                Console.WriteLine(
+                    $"{group.Genre} | Кількість: {group.Count} | Загальна тривалість: {group.TotalDuration} хв");
+            }
+            break;
+
+        case "report-sum":
+            var totals = ReportService.Totals(service.All());
+
+            Console.WriteLine("\nЗагальна статистика:");
+            Console.WriteLine($"Кількість фільмів: {totals.Items}");
+            Console.WriteLine($"Загальна тривалість: {totals.TotalDuration} хв");
+            Console.WriteLine($"Середня тривалість: {totals.AverageDuration:F2} хв");
+            Console.WriteLine($"Максимальна тривалість: {totals.MaxDuration} хв");
+            break;
+
+        case "report-deferred":
+            var source = service.All().ToList();
+
+            var query = source.Where(m => m.Duration < 120);
+
+            Console.WriteLine("\nВідкладене виконання LINQ:");
+
+            Console.WriteLine(
+                $"До додавання фільму: {query.Count()}");
+
+            source.Add(
+                Movie.Create("M-999", "Тестовий фільм", "Тест", 2025, 90));
+
+            Console.WriteLine(
+                $"Після додавання фільму: {query.Count()}");
+
+            var snapshot = query.ToList();
+
+            source.Clear();
+
+            Console.WriteLine(
+                $"Кількість у збереженому знімку: {snapshot.Count}");
+
+            break;
+
+        default:
+            Console.WriteLine("Невідома команда.");
+            Console.WriteLine("Доступні команди: report-top, report-low, report-groups, report-sum, demo-events, report-deferred.");
+
+            break;
+    }
+
+    return;
+}
 
 var logPath = Path.Combine(
     AppContext.BaseDirectory, "logs", "app.log");
