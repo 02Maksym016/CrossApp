@@ -18,7 +18,7 @@ public sealed class CinemaService
 
     public IReadOnlyList<Movie> All() =>
         _store.List();
-    
+
     public IReadOnlyList<Movie> FindAll(Func<Movie, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
@@ -86,6 +86,37 @@ public sealed class CinemaService
             OnChanged(movie, CinemaChangeKind.Removed);
 
         return removed;
+    }
+
+
+    public async Task<int> ImportAsync(
+        IMovieImporter importer,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(importer);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        IReadOnlyList<Movie> movies =
+            await importer.LoadAsync(path, cancellationToken);
+
+        int importedCount = 0;
+
+        foreach (Movie movie in movies)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_store.GetById(movie.Id) is not null)
+                continue;
+
+            _store.Add(movie);
+            OnChanged(movie, CinemaChangeKind.Added);
+
+            importedCount++;
+        }
+
+        return importedCount;
     }
 
     private void OnChanged(Movie movie, CinemaChangeKind kind)

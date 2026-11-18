@@ -1,0 +1,26 @@
+[
+    {
+        "Id": "M-020",
+        "Title": "Дюна: Частина друга",
+        "Genre": "Фантастика",
+        "Year": 2024,
+        "Duration": 166,
+        "IsArchived": false
+    },
+    {
+        "Id": "M-021",
+        "Title": "Втеча з Шоушенка",
+        "Genre": "Драма",
+        "Year": 1994,
+        "Duration": 142,
+        "IsArchived": false
+    },
+    {
+        "Id": "M-022",
+        "Title": "Зелена миля",
+        "Genre": "Драма",
+        "Year": 1999,
+        "Duration": 189,
+        "IsArchived": false
+    }
+]

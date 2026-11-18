@@ -89,9 +89,61 @@ if (command != "demo-events")
 
             break;
 
+
+        case "import":
+            {
+                string importPath = Path.Combine(
+                    "data", "import-movies.json");
+
+                using var cts = new CancellationTokenSource();
+
+                Console.CancelKeyPress += (_, e) =>
+                {
+                    e.Cancel = true;
+                    cts.Cancel();
+                };
+
+                Console.WriteLine("Початок асинхронного імпорту...");
+                Console.WriteLine("Для скасування натисни Ctrl+C.");
+
+                try
+                {
+                    int imported = await service.ImportAsync(
+                        new JsonMovieImporter(),
+                        importPath,
+                        cts.Token);
+
+                    Console.WriteLine(
+                        $"Імпорт завершено. Додано фільмів: {imported}");
+                }
+                catch (OperationCanceledException)
+                {
+                    Console.WriteLine("Імпорт скасовано.");
+                }
+                catch (DomainException ex)
+                {
+                    Console.WriteLine($"Помилка даних: {ex.Message}");
+                }
+                catch (FileNotFoundException ex)
+                {
+                    Console.WriteLine($"Файл не знайдено: {ex.Message}");
+                }
+                catch (System.Text.Json.JsonException ex)
+                {
+                    Console.WriteLine($"Помилка JSON: {ex.Message}");
+                }
+                catch (IOException ex)
+                {
+                    Console.WriteLine($"Помилка читання файлу: {ex.Message}");
+                }
+
+                break;
+            }
+
+
         default:
             Console.WriteLine("Невідома команда.");
-            Console.WriteLine("Доступні команди: report-top, report-low, report-groups, report-sum, demo-events, report-deferred.");
+            Console.WriteLine("Доступні команди: report-top, report-low, report-groups, report-sum, demo-events, report-deferred, import.");
 
             break;
     }
@@ -229,8 +281,7 @@ Console.WriteLine($"Подій до помилки: {changesBeforeError}");
 Console.WriteLine($"Подій після помилки: {changes}");
 
 Console.WriteLine("\nФільми тривалістю більше 150 хвилин:");
-
-var longMovies = service.FindAll(movie => movie.Duration > 150);
+var longMovies = service.All().Where(m => m.Duration > 150);
 
 foreach (var movie in longMovies)
     Console.WriteLine(movie);
